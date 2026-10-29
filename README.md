@@ -1,4 +1,4 @@
-# Fashion Search Engine
+# Urban Outfinders
 
 A search engine for ~28k fashion products from an Indian e-commerce site.
 Queries are matched against product titles, descriptions and attributes,
@@ -22,8 +22,8 @@ While the repository is private you also need the
 to download the dataset.
 
 ```bash
-git clone https://github.com/uripont/fashion-search-engine
-cd fashion-search-engine
+git clone https://github.com/uripont/urban-outfinders
+cd urban-outfinders
 uv sync                              # installs Python 3.12 and all dependencies into .venv
 uv run python scripts/fetch_data.py  # downloads the catalogue and NLTK resources
 JUPYTER_PREFER_ENV_PATH=1 uv run jupyter lab   # opens the notebooks

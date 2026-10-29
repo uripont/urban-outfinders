@@ -19,7 +19,7 @@ from pathlib import Path
 
 import nltk
 
-REPO = "uripont/fashion-search-engine"
+REPO = "uripont/urban-outfinders"
 TAG = "data-v1"
 ASSET = "fashion_products_dataset.json.gz"
 SHA256 = "adbfea4369a8efd849aa20942789aaf501d1d02cb38fdde6affeab9f8d9e15fb"
