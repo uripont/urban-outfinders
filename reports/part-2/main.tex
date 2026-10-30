@@ -1,0 +1,207 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+\usepackage[nameinlink]{cleveref}
+
+\graphicspath{{figures/}}
+
+\title{Urban Outfinders\\[0.3em]\large Part 2: Indexing and Evaluation}
+\author{Marc Mallol\and Èric Dürr\and Oriol Pont}
+\date{Information Retrieval and Web Analytics, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+% What this part adds to Part 1: completed brand names, an inverted index,
+% conjunctive (AND) matching, TF-IDF ranking and its evaluation. Outline of the sections. Where the code is:
+% https://github.com/uripont/urban-outfinders, notebooks/part_2.ipynb.
+
+\section{Indexing}
+
+The code is in the \path{fashion_search} package: \path{index.py} builds the
+inverted index and matches queries, and \path{ranking.py} ranks the matches.
+Section~2 of \path{notebooks/part_2.ipynb} runs them.
+
+\subsection{Inverted index}
+
+\paragraph{Brand names completed.} Part~1 found that most brand names are cut
+off in the source data (\emph{Pu}, \emph{True Bl}, \emph{REEB}), so a search for
+\emph{puma} could not find a single Puma product. Product URLs start with the
+full brand (\path{/puma-solid-men-round-neck-...}), so before indexing we
+complete each brand whose letters run out inside a URL word with the rest of
+that word: \emph{Pu} becomes \emph{Puma} and \emph{True Bl} becomes
+\emph{True Blue}. This changes the brand of 26{,}798 of the 28{,}080 products.
+Brands that do not match the start of their URL are left as they are. We also
+strip the seller rating and notice glued to some seller names
+(\emph{RetailNet4.5Seller changed. Check for\ldots} becomes \emph{RetailNet}).
+
+\paragraph{Structure.} The index maps each term to the products that contain
+it and how many times, $\{\mathit{term}: \{\mathit{pid}: \mathit{count}\}\}$.
+The counts are what TF-IDF needs; the set of pids is the posting list of the
+practical labs. Following Part~1, each product is indexed on one text that
+merges its title, description, product details and brand, all processed by
+the same \texttt{build\_terms} as the queries. Category and sub-category are
+left out: they never contain query words and work better as filters.
+\Cref{tab:index} gives the size of the result. Its vocabulary is very uneven:
+half the terms appear in at most 4 products, while the most common
+(\emph{wear}, \emph{wash}, \emph{cotton}) appear in about 70\% of them, mostly
+through the product details.
+
+\begin{table}[h]
+  \centering
+  \caption{Size of the inverted index.}
+  \label{tab:index}
+  \begin{tabular}{lr}
+    \toprule
+    Products & 28{,}080 \\
+    Terms & 6{,}884 \\
+    Postings (term, product pairs) & 905{,}629 \\
+    Median products per term & 4 \\
+    Terms in a single product & 2{,}043 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Conjunctive matching.} A query matches the products that contain
+every one of its terms. We intersect the posting lists of the query terms,
+starting from the shortest, so each step can only shrink the set.
+\Cref{tab:and} shows how each term narrows the validation queries: common terms
+such as \emph{cotton} remove few products, while the garment words remove most.
+
+\begin{table}[h]
+  \centering
+  \caption{Products matching each term, and all terms so far, for the two
+  validation queries (terms after pre-processing).}
+  \label{tab:and}
+  \begin{tabular}{llrr}
+    \toprule
+    Query & Term & With the term & With all terms so far \\
+    \midrule
+    1 & women & 13{,}807 & 13{,}807 \\
+      & full & 7{,}171 & 3{,}537 \\
+      & sleev & 18{,}031 & 3{,}479 \\
+      & sweatshirt & 1{,}419 & 671 \\
+      & cotton & 19{,}889 & 498 \\
+    \midrule
+    2 & men & 13{,}517 & 13{,}517 \\
+      & slim & 5{,}654 & 2{,}861 \\
+      & jean & 2{,}436 & 368 \\
+      & blue & 7{,}696 & 225 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{TF-IDF ranking}
+
+Each term $t$ of a product or a query gets the weight
+\[
+  w_t = \left(1 + \log \mathit{tf}_t\right) \cdot \log \frac{N}{\mathit{df}_t},
+\]
+where $\mathit{tf}_t$ is how many times $t$ appears in the product (or query),
+$\mathit{df}_t$ is how many products contain $t$ and $N = 28{,}080$. The
+logarithm on $\mathit{tf}$ keeps a word repeated across the product details
+from dominating, and the IDF factor gives rare words more weight than words
+that most products share. A product's score is the cosine similarity between
+its weight vector and the query's, so longer product texts are not favoured
+just for having more words. Products with equal scores, often the same item
+listed by different sellers, are ordered by pid so results are reproducible.
+
+Query~1 matches 498 products and query~2 matches 225. Their top results are
+the expected garments (\emph{Full Sleeve Solid Women Sweatshirt},
+\emph{Slim Men Blue Jeans}), from several brands.
+
+\paragraph{Runs to evaluate.} \path{validation_labels.csv} judges only 20
+products per query, and none of them is among the top 10 results of either
+query. Counting unjudged products as non-relevant would give every metric a
+score of zero and say nothing about the ranking. As in the practical labs, we
+evaluate how the engine ranks the judged products: each run is the list of
+judged products the engine returns, in its order. For query~1 the engine
+returns all 20 judged products, including the 13 relevant ones. For query~2 it
+returns only 8 of them, 6 of the 10 relevant ones, because the other four lack
+a query term (\cref{sec:limitations}).
+
+\subsection{Test queries}
+
+% The five queries, how they were chosen (term frequencies, TF-IDF, ...) and
+% what each one tests.
+
+\section{Evaluation}
+
+\subsection{Metrics}
+
+% Each metric (P@K, R@K, AP@K, F1@K, MAP, MRR, NDCG): what it measures, how
+% they differ, and the value of K used. Code: evaluation.py.
+
+\subsection{Validation queries}
+
+% Numbers only, rounded to three decimals: one table for the two validation
+% queries, no text. The runs are the ones described in Section 2.2.
+
+\subsection{Test queries}
+
+% How the relevance labels were assigned (which documents were judged, by whom,
+% what counts as relevant), the results table, and the analysis of the results.
+% Labels: data/test_labels.csv.
+
+\section{Limitations and improvements}
+\label{sec:limitations}
+
+Section~4 of the notebook holds the evidence for each problem below.
+
+\paragraph{AND matching is too strict.} A product is lost if it lacks a single
+query term, however well it matches the rest. Four of the ten relevant products
+for \emph{men slim jeans blue} are never returned: one is a \emph{Tapered Fit
+Men Blue Jeans} without \emph{slim}, and three are women's jeans that the
+labels consider relevant but that do not contain \emph{men}. Common terms make
+this worse: \emph{cotton} has an IDF of 0.35, so it barely changes the ranking,
+yet it still excludes every product that does not mention it.
+\emph{Fix:} rank with a disjunctive (OR) query, so missing terms lower the score
+instead of removing the product, or drop query terms whose IDF is very low
+before matching.
+
+\paragraph{Different words for the same thing.} Products and users name the
+same garment differently, and a query finds only the products that use its
+word: \emph{sweater} matches 149 products and \emph{sweatshirt} 1{,}419,
+\emph{sneakers} 780 and \emph{shoes} 526, with little overlap. Compounds split
+the same way: \emph{track pants} and \emph{trackpants} are different terms.
+Part~1 unified a few such variants (\emph{tee}, \emph{t-shirt}); a fixed list
+does not scale. \emph{Fix:} expand queries with synonyms from a hand-made
+garment list or from word embeddings (Part~3), and join compounds that appear
+both ways in the catalogue.
+
+\paragraph{One merged field.} A term counts the same in the title as in a long
+list of product details, although the title says what the product is and the
+details mostly describe its fabric and care. \emph{Fix:} index the fields
+separately and weight title matches more, as BM25F does.
+
+\paragraph{Near-duplicates and no quality signal.} Many products share a title
+and differ only in colour or seller, so the top 20 results of the validation
+queries contain only 3 and 4 distinct titles. TF-IDF also ignores rating,
+price and stock: four of the top 20 results of query~1 are out of stock.
+\emph{Fix:} combine the text score with rating, discount and availability (the
+custom score of Part~3), and group or diversify near-identical products.
+
+\paragraph{Incomplete relevance judgements.} The validation labels judge 20
+products per query, while the queries match 498 and 225 products, so the
+metrics only measure how the judged products are ordered, not the quality of
+what users would see first. \emph{Fix:} judge the top results of every system
+being compared (pooling).
+
+\section{Conclusions}
+
+\section*{Use of AI tools}
+
+% Check this with the group before submitting.
+
+\end{document}
