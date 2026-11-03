@@ -130,9 +130,36 @@ its weight vector and the query's, so longer product texts are not favoured
 just for having more words. Products with equal scores, often the same item
 listed by different sellers, are ordered by pid so results are reproducible.
 
-Query~1 matches 498 products and query~2 matches 225. Their top results are
-the expected garments (\emph{Full Sleeve Solid Women Sweatshirt},
-\emph{Slim Men Blue Jeans}), from several brands.
+Query~1 matches 498 products and query~2 matches 225. \Cref{tab:top} shows
+their top five: the expected garments, from several brands, with scores that
+fall slowly because many products share almost the same text. Ranks 2 and 3 of
+query~2 tie and are ordered (by pid).
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Top five TF-IDF results of the validation queries.}
+  \label{tab:top}
+  \begin{tabular}{rlllr}
+    \toprule
+    Rank & Product (pid) & Title & Brand & Score \\
+    \midrule
+    \multicolumn{5}{l}{\emph{Query 1: women full sleeve sweatshirt cotton}} \\
+    1 & SWSFZVTTQCB4SJ7F & Full Sleeve Solid Women Sweatshirt & Levis & 0.730 \\
+    2 & SWSFZ2H4KMYXZXX7 & Full Sleeve Solid Women Sweatshirt & ECKO Unltd & 0.718 \\
+    3 & SWSFY38ADYPVZHYZ & Full Sleeve Printed Women Sweatshirt & ECKO Unltd & 0.713 \\
+    4 & SWSFZVTNGM4HG8BC & Full Sleeve Printed Women Sweatshirt & Levis & 0.711 \\
+    5 & SWSFYRKYAHH4HHSM & Full Sleeve Printed Women Sweatshirt & Steenbok & 0.702 \\
+    \midrule
+    \multicolumn{5}{l}{\emph{Query 2: men slim jeans blue}} \\
+    1 & JEAFSKYHZHSZZC9S & Slim Men Blue Jeans & ECKO Unltd & 0.547 \\
+    2 & JEAFEKQZ4C2Z6GCX & Slim Men Blue Jeans & True Blue & 0.536 \\
+    3 & JEAFEKQZQPYHHVGS & Slim Men Blue Jeans & True Blue & 0.536 \\
+    4 & JEAFQF6JBUSEXHVF & Slim Men Blue Jeans & ECKO Unltd & 0.520 \\
+    5 & JEAFSKYHSYMTKEJD & Slim Men Blue Jeans & ECKO Unltd & 0.518 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \paragraph{Runs to evaluate.} \path{validation_labels.csv} judges only 20
 products per query, and none of them is among the top 10 results of either
@@ -256,66 +283,77 @@ sees, a typical first page, and all the products judged per query.
 
 \subsection{Test queries}
 
-\paragraph{Relevance labels.} For each test query we judged its top 20
-results, 100 products in all (\path{data/test_labels.csv}). A rule on the words
-of each title proposed a first label; we then checked every product, reading
-its title, description and product details, and corrected 10 of the 100. Our
+\paragraph{Relevance labels.} For each test query we judged its top 40
+results, or all 33 matches for query~5, 193 products in all
+(\path{data/test_labels.csv}). We first judged only the top 20, but then every
+relevant product of a run was returned by construction and R@20 was always 1,
+so we extended the judgements to rank 40: relevant products ranked 21 to 40 now
+count in recall. Queries 3 and 5 are judged completely, since they match only
+40 and 33 products. A rule on the words of each title proposed a first label;
+we then checked every product, reading its title, description and product
+details, and corrected 19 of the 193. Our
 criterion was that a product is relevant unless it contradicts something the
 query asks for. What the query leaves open is accepted: unstitched kurta fabric
 is relevant to \emph{women printed kurta cotton}, and jogger-cut jeans to
 \emph{slim fit jogger men}. What the query states must hold: two slim-fit polos
-are not relevant to \emph{men polo tshirt regular fit}. Most corrections came
-from details the title leaves out: six jackets are denim only according to their
-product type or fabric. One case stayed borderline, a kurta whose pattern is
+are not relevant to \emph{men polo tshirt regular fit}, and neither are
+jackets whose description only suggests wearing them with denims. Most
+corrections came from details the title leaves out: 15 jackets are denim only
+according to their product type, fabric or description. One case stayed borderline, a kurta whose pattern is
 listed as self design but whose description calls it printed; we kept it
 relevant. \Cref{tab:test} gives the results.
 
 \begin{table}[htbp]
   \centering
   \caption{Evaluation of the test queries, with the relevant products among the
-  20 judged.}
+  judged ones (40 per query, 33 for query~5).}
   \label{tab:test}
   \begin{tabular}{lrrrrrrr}
     \toprule
     Query & Relevant & $K$ & P@K & R@K & AP@K & F1@K & NDCG@K \\
     \midrule
-    3 & 20 & 5  & 1.000 & 0.250 & 1.000 & 0.400 & 1.000 \\
-      &    & 10 & 1.000 & 0.500 & 1.000 & 0.667 & 1.000 \\
-      &    & 20 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\
+    3 & 40 & 5  & 1.000 & 0.125 & 1.000 & 0.222 & 1.000 \\
+      &    & 10 & 1.000 & 0.250 & 1.000 & 0.400 & 1.000 \\
+      &    & 20 & 1.000 & 0.500 & 1.000 & 0.667 & 1.000 \\
     \midrule
-    4 & 18 & 5  & 0.800 & 0.222 & 0.710 & 0.348 & 0.830 \\
-      &    & 10 & 0.900 & 0.500 & 0.790 & 0.643 & 0.890 \\
-      &    & 20 & 0.900 & 1.000 & 0.875 & 0.947 & 0.951 \\
+    4 & 38 & 5  & 0.800 & 0.105 & 0.710 & 0.186 & 0.830 \\
+      &    & 10 & 0.900 & 0.237 & 0.790 & 0.375 & 0.890 \\
+      &    & 20 & 0.900 & 0.474 & 0.787 & 0.621 & 0.889 \\
     \midrule
     5 & 10 & 5  & 1.000 & 0.500 & 1.000 & 0.667 & 1.000 \\
       &    & 10 & 0.800 & 0.800 & 0.758 & 0.800 & 0.857 \\
       &    & 20 & 0.500 & 1.000 & 0.923 & 0.667 & 0.978 \\
     \midrule
-    6 & 20 & 5  & 1.000 & 0.250 & 1.000 & 0.400 & 1.000 \\
-      &    & 10 & 1.000 & 0.500 & 1.000 & 0.667 & 1.000 \\
-      &    & 20 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\
+    6 & 40 & 5  & 1.000 & 0.125 & 1.000 & 0.222 & 1.000 \\
+      &    & 10 & 1.000 & 0.250 & 1.000 & 0.400 & 1.000 \\
+      &    & 20 & 1.000 & 0.500 & 1.000 & 0.667 & 1.000 \\
     \midrule
-    7 & 20 & 5  & 1.000 & 0.250 & 1.000 & 0.400 & 1.000 \\
-      &    & 10 & 1.000 & 0.500 & 1.000 & 0.667 & 1.000 \\
-      &    & 20 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\
+    7 & 34 & 5  & 1.000 & 0.147 & 1.000 & 0.256 & 1.000 \\
+      &    & 10 & 1.000 & 0.294 & 1.000 & 0.455 & 1.000 \\
+      &    & 20 & 1.000 & 0.588 & 1.000 & 0.741 & 1.000 \\
     \midrule
-    \multicolumn{8}{l}{MAP 0.960 \qquad MRR 1.000} \\
+    \multicolumn{8}{l}{MAP 0.964 \qquad MRR 1.000} \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\paragraph{Analysis.} Three queries are ranked perfectly. In each, one rare word
+\paragraph{Analysis.} Three queries have only relevant products in their top
+20, so their precision, AP and NDCG are 1. In each, one rare word
 (\emph{kurta}, \emph{puma}, \emph{denim} with \emph{jacket}) defines the
 product, and TF-IDF gives it most of the weight. Query~7 also shows why the
-product details are indexed: the six jackets whose titles omit \emph{denim}
-are still found and ranked first, through their product type and fabric.
+product details are indexed: the 15 jackets whose titles omit \emph{denim}
+are still found, through their product type, fabric or description. Its six non-relevant
+results only appear from rank 31, among relevant ones. Recall is what tells
+these three queries apart from a perfect system: 40, 40 and 34 products are
+relevant, so a top 20 can hold at most 20 of them (R@20 of 0.500 to
+0.588), and a user who stops at the first page sees only part of what exists.
 
 The other two queries show how the metrics differ. In query~4, two slim-fit
 polos rank 3rd and 11th. Both contain \emph{regular} somewhere in their text,
 so AND matching keeps them, and with an IDF of 0.60 the word barely changes the
 score, so missing the attribute the user asked for costs almost nothing. One
 mistake at rank 3 drops AP@5 to 0.710 while P@5 is still 0.800: AP punishes an
-early mistake more than precision does. In query~5, precision falls from 1.000
+early mistake more than precision does. Ranks 21 to 40 are all relevant. In query~5, precision falls from 1.000
 to 0.500 between $K = 5$ and 20 while recall rises from 0.500 to 1.000, the
 usual trade-off. Its 10 relevant products all rank in the top 12, so AP@20
 (0.923) and NDCG@20 (0.978) stay high although P@20 is low. The other ten
@@ -323,13 +361,14 @@ results are t-shirts and boxers whose text mentions joggers. MRR is 1.000 for
 every validation and test query, since the first result is always relevant, so
 here it cannot tell the queries apart.
 
-The test queries score higher than the validation ones (MAP 0.960 against
-0.772), but not only because they are easier. We judged the engine's own top
-20, so every relevant product in a test run was returned by construction,
-R@20 is always 1 and relevant products ranked below 20 are never counted. The
-validation labels include relevant products the engine misses, which lowers
-their recall and MAP. Our test scores measure how the engine orders its first
-results, not whether it finds everything.
+The test queries score higher than the validation ones (MAP 0.964 against
+0.772), but not only because they are easier. The validation labels include
+relevant products the engine never returns, which lowers their recall and MAP.
+Ours cover the engine's own top 40, so a relevant product the engine misses or
+ranks below 40 is never counted. For queries 3 and 5 that loses nothing, since
+every match is judged; for queries 4, 6 and 7 recall is measured against the
+relevant products in the top 40 only and so overstates the true recall, which
+the 673, 165 and 82 matches suggest is lower.
 
 \section{Limitations and improvements}
 \label{sec:limitations}
@@ -389,7 +428,7 @@ custom score of Part~3), and group or diversify near-identical products.
 products per query, while the queries match 498 and 225 products, so the
 metrics only measure how the judged products are ordered, not the quality of
 what users would see first. Our test labels have the opposite problem: they
-cover only the engine's own top 20, so they cannot reveal relevant products it
+cover only the engine's own top 40, so they cannot reveal relevant products it
 ranks lower or misses. \emph{Fix:} judge the top results of every system being
 compared (pooling), so each one is measured on products the others found too.
 
@@ -403,7 +442,7 @@ and TF-IDF with cosine similarity orders the matches.
 
 The ranking itself works well. The first result is relevant for every query
 (MRR 1.000), the validation queries reach a MAP of 0.772 and our test queries
-0.960, with three of them ranked perfectly. The main weaknesses lie in matching
+0.964, with three of them free of mistakes in the top 20. The main weaknesses lie in matching
 and in what TF-IDF cannot see:
 
 \begin{itemize}
@@ -423,14 +462,13 @@ and in what TF-IDF cannot see:
 These point to Part~3: a disjunctive or BM25 ranking that tolerates a missing
 word, field weights that favour the title, and a custom score that adds rating,
 discount and availability to text relevance. Finally, the validation labels
-cover few products and our test labels only the engine's top 20, so a fair
+cover few products and our test labels only the engine's top 40, so a fair
 comparison of the Part~3 rankings will need labels pooled from all of them.
 
 \section*{Use of AI tools}
 
 We used Claude (Anthropic), through Claude Code, to review the notebook and this report. It
-helped write the code production and debugging, and helped draft this report from the notebook
-outputs. We checked every number against the notebook outputs and reviewed and edited the
+helped write and debug the code, and helped draft this report from the notebook outputs. We checked every number against the notebook outputs and reviewed and edited the
 text ourselves.
 
 \end{document}

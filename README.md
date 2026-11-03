@@ -10,7 +10,7 @@ use the search.
 ## Status
 
 - [x] Text processing and exploratory analysis of the catalogue
-- [ ] Inverted index, TF-IDF ranking and evaluation (P@K, R@K, MAP, MRR, NDCG)
+- [x] Inverted index, TF-IDF ranking and evaluation (P@K, R@K, MAP, MRR, NDCG)
 - [ ] BM25, custom scoring and word2vec ranking
 - [ ] Web app with RAG summaries and an analytics dashboard
 
