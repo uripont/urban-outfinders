@@ -9,7 +9,7 @@ use the search.
 
 ## Status
 
-- [ ] Text processing and exploratory analysis of the catalogue
+- [x] Text processing and exploratory analysis of the catalogue
 - [ ] Inverted index, TF-IDF ranking and evaluation (P@K, R@K, MAP, MRR, NDCG)
 - [ ] BM25, custom scoring and word2vec ranking
 - [ ] Web app with RAG summaries and an analytics dashboard
@@ -40,6 +40,52 @@ environment. Add dependencies with `uv add <package>` (or
 the updated `pyproject.toml` and `uv.lock`.
 
 For the LLM features, copy `.env.example` to `.env` and fill in the key.
+
+## Running the search engine
+
+Build the product records first, and again whenever `corpus.py` changes,
+since every part reads them from `data/processed/products.parquet`:
+
+```bash
+uv run python -m fashion_search.corpus
+```
+
+Then run a part's notebook top to bottom (`notebooks/part_N.ipynb`). Each
+notebook produces the numbers and figures of its report.
+
+| Part | Notebook | Code |
+|---|---|---|
+| 1. Text processing and analysis | `part_1.ipynb` | `text.py` (pre-processing), `corpus.py` (product records) |
+| 2. Indexing and evaluation | `part_2.ipynb` | `index.py` (inverted index, AND matching), `ranking.py` (TF-IDF), `evaluation.py` (metrics) |
+
+The package can also be used directly, for example to search and evaluate
+one query:
+
+```python
+from fashion_search import corpus, evaluation
+from fashion_search.ranking import SearchEngine
+
+engine = SearchEngine(corpus.load_corpus())        # builds the inverted index
+print(engine.results("men slim jeans blue", k=5))  # top 5 with title, brand and TF-IDF score
+
+labels = evaluation.load_labels("data/validation_labels.csv")[2]
+ranked = [pid for pid in engine.search("men slim jeans blue") if pid in labels]
+print(evaluation.evaluate({2: (ranked, labels)}))  # P@K, R@K, AP@K, F1@K, NDCG@K
+```
+
+`evaluation.py` also has `mean_average_precision` and `mean_reciprocal_rank`
+for several queries at once. The test queries' relevance labels are in
+`data/test_labels.csv`; `part_2.ipynb` only writes a draft of that file when
+it does not exist, so re-running it keeps the hand judgements.
+
+**Windows, path with accents:** if the project path contains a character such
+as `é`, Python 3.12 cannot read the path that `uv sync` installs and reports
+`No module named 'fashion_search'`. Run commands from the repository root with
+`src` on the path (the notebooks already add it):
+
+```powershell
+$env:PYTHONPATH="src"; uv run python -m fashion_search.corpus
+```
 
 ## Reports
 
